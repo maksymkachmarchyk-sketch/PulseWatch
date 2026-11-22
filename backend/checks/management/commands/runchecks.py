@@ -1,3 +1,4 @@
+import os
 import time
 from datetime import timedelta
 
@@ -20,6 +21,7 @@ class Command(BaseCommand):
     def handle(self, *args, **opts):
         from PulseWatch.celery import app
         app.conf.task_always_eager = True  # notification tasks run inline instead of via Redis
+        os.environ['NOTIFY_SYNC'] = 'true'  # send alert e-mails directly, no broker needed
 
         self.stdout.write('Running checks in-process. Ctrl+C to stop.')
         while True:
