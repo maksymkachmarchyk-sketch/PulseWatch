@@ -18,8 +18,10 @@ services:
       - key: DEBUG
         value: "False"
       - key: AUTO_VERIFY_USERS
-        value: "True"
+        value: "False"
       - key: EMAIL_BACKEND
-        value: django.core.mail.backends.console.EmailBackend
+        value: accounts.email_backend.BrevoEmailBackend
       - key: DEFAULT_FROM_EMAIL
-        value: pulsewatch@example.com
+        value: pulsewatch81@gmail.com
+      - key: BREVO_API_KEY
+        sync: false
