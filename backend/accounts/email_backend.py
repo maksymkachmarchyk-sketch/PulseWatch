@@ -1,4 +1,5 @@
 import os
+import sys
 from email.utils import parseaddr
 
 import requests
@@ -38,9 +39,13 @@ class BrevoEmailBackend(BaseEmailBackend):
                     self.url, json=payload, timeout=10,
                     headers={'api-key': key, 'accept': 'application/json'},
                 )
+                if not r.ok:
+                    # visible in Render -> Logs
+                    print(f'[brevo] HTTP {r.status_code}: {r.text}', file=sys.stderr, flush=True)
                 r.raise_for_status()
                 sent += 1
-            except requests.RequestException:
+            except requests.RequestException as exc:
+                print(f'[brevo] request failed: {exc!r}', file=sys.stderr, flush=True)
                 if not self.fail_silently:
                     raise
         return sent
