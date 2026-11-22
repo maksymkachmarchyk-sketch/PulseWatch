@@ -1,0 +1,15 @@
+<!doctype html><html lang="en" data-bs-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PulseWatch</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="/css/app.css" rel="stylesheet"></head><body><div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="/js/app.js"></script>
+<script>
+const m = shell('notifications')
+m.innerHTML = `<h1 class="title">Notifications</h1><section class="card" id="list">Loading…</section>`
+;(async () => {
+  try {
+    const [ns, inc, ms] = await Promise.all([api('/api/notifications/'), api('/api/incidents/'), api('/api/monitors/')])
+    const mname = {}; ms.forEach(x => mname[x.id] = x.name)
+    const imon = {}; inc.forEach(i => imon[i.id] = i.monitor)
+    list.innerHTML = ns.length ? `<div class="table-responsive"><table class="table"><thead><tr><th>Status</th><th>Monitor</th><th>Channel</th><th>Message</th><th>Sent</th></tr></thead><tbody>${ns.map(n => `<tr><td>${n.is_sent ? badge(true, 'Sent') : n.error_message ? badge(false, 'Failed') : '<span class="badge">Pending</span>'}</td><td>${imon[n.incident] ? `<a href="/monitor.html?id=${imon[n.incident]}">${esc(mname[imon[n.incident]] || '#' + imon[n.incident])}</a>` : '—'}</td><td>${esc(n.channel)}</td><td style="white-space:normal;min-width:260px">${esc(n.message)}${n.error_message ? `<div class="text-danger small">${esc(n.error_message)}</div>` : ''}</td><td>${n.sent_at ? fmtDate(n.sent_at) : '—'}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No notifications yet. You will get one when a monitor goes down.</div>'
+  } catch (e) { list.innerHTML = errBox(e.message) }
+})()
+</script></body></html>

@@ -1,0 +1,46 @@
+# Секрети: не комітити ніколи
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+env/
+*.egg-info/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Django
+backend/db.sqlite3
+*.sqlite3
+*.sqlite3-journal
+backend/staticfiles/
+backend/media/
+*.log
+
+# Celery
+backend/celerybeat-schedule*
+celerybeat-schedule*
+celerybeat.pid
+
+# Node (якщо колись повернетесь до React/Vite)
+node_modules/
+dist/
+
+# Docker
+docker-compose.override.yml
+
+# Архіви
+*.zip
+
+# Редактори та ОС
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

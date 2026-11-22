@@ -1,0 +1,39 @@
+<!doctype html><html lang="en" data-bs-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PulseWatch</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="/css/app.css" rel="stylesheet"></head><body><div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="/js/app.js"></script>
+<script>
+const m = shell('monitors')
+m.innerHTML = `<div class="hrow"><h1 class="title">Monitors</h1><button class="btn btn-success" onclick="openForm()">+ New monitor</button></div>
+<form id="nf" class="card d-none"><div class="row g-3"><div class="col-md-6"><label class="form-label">Name</label><input name="name" class="form-control" required></div>
+<div class="col-md-6"><label class="form-label">URL</label><input name="url" type="url" class="form-control" placeholder="https://example.com/status" required></div>
+<div class="col-md-4"><label class="form-label">Interval (seconds)</label><input name="interval" type="number" min="1" value="300" class="form-control" required></div>
+<div class="col-md-4"><label class="form-label">Timeout (seconds)</label><input name="timeout" type="number" min="1" value="10" class="form-control" required></div>
+<div class="col-md-4"><label class="form-label">Max checks (empty = unlimited)</label><input name="max_checks" type="number" min="1" class="form-control"></div>
+<div class="col-12 text-end"><button type="button" class="btn text-secondary" onclick="nf.classList.add('d-none')">Cancel</button><button class="btn btn-success">Create monitor</button></div><div class="col-12" id="nf-err"></div></div></form>
+<section class="card" id="list">Loading…</section>`
+let cache = []
+function openForm(x) {
+  nf.reset(); nf.dataset.id = x ? x.id : ''
+  if (x) for (const k of ['name', 'url', 'interval', 'timeout']) nf.elements[k].value = x[k]
+  nf.elements.max_checks.value = x && x.max_checks != null ? x.max_checks : ''
+  nf.querySelector('button.btn-success').textContent = x ? 'Save changes' : 'Create monitor'
+  nf.classList.remove('d-none'); nf.scrollIntoView({ behavior: 'smooth' })
+}
+const edit = id => openForm(cache.find(v => v.id === id))
+async function load() {
+  try {
+    const d = cache = await api('/api/monitors/')
+    list.innerHTML = d.length ? `<div class="table-responsive"><table class="table"><thead><tr><th>Name</th><th>URL</th><th>Every</th><th>Checks</th><th>State</th><th></th></tr></thead><tbody>${d.map(x => `<tr><td><a href="/monitor.html?id=${x.id}"><b>${esc(x.name)}</b></a></td><td class="text-secondary">${esc(x.url)}</td><td>${fmtInt(x.interval)}</td><td>${x.checks_count}${x.max_checks ? ' / ' + x.max_checks : ''}</td><td>${badge(x.is_active, x.is_active ? 'Active' : 'Paused').replace('bad', '')}</td>
+      <td class="text-end"><button class="btn btn-sm text-secondary" onclick="toggle(${x.id},${!x.is_active})">${x.is_active ? 'Pause' : 'Resume'}</button><button class="btn btn-sm text-secondary" aria-label="Edit" onclick="edit(${x.id})">${ic('edit', 16)}</button><button class="btn btn-sm text-secondary" aria-label="Delete" onclick="del(${x.id},'${esc(x.name).replace(/'/g, '')}')">${ic('trash', 16)}</button></td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No monitors yet. Create the first one.</div>'
+  } catch (e) { list.innerHTML = errBox(e.message) }
+}
+nf.onsubmit = async e => {
+  e.preventDefault(); const f = Object.fromEntries(new FormData(nf))
+  const id = nf.dataset.id
+  try { await api(id ? '/api/monitors/' + id + '/' : '/api/monitors/', { method: id ? 'PATCH' : 'POST', body: { ...f, interval: +f.interval, timeout: +f.timeout, max_checks: f.max_checks === '' ? null : +f.max_checks } }); nf.reset(); nf.dataset.id = ''; nf.classList.add('d-none'); document.getElementById('nf-err').innerHTML = ''; load() }
+  catch (x) { document.getElementById('nf-err').innerHTML = errBox(x.message) }
+}
+const toggle = async (id, on) => { await api('/api/monitors/' + id + '/', { method: 'PATCH', body: { is_active: on } }); load() }
+const del = async (id, n) => { if (confirm('Delete "' + n + '" and all its checks?')) { await api('/api/monitors/' + id + '/', { method: 'DELETE' }); load() } }
+load().then(() => { const e = new URLSearchParams(location.search).get('edit'); const x = e && cache.find(v => v.id == e); if (x) openForm(x) })
+</script></body></html>

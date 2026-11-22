@@ -1,0 +1,27 @@
+<!doctype html><html lang="en" data-bs-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PulseWatch</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="/css/app.css" rel="stylesheet"></head><body><div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="/js/app.js"></script>
+<script>
+const m = shell('monitors'), id = new URLSearchParams(location.search).get('id')
+const RANGES = { '1h': ['Past 1 Hour', 36e5], '6h': ['Past 6 Hours', 216e5], '24h': ['Past 24 Hours', 864e5], '7d': ['Past 7 Days', 6048e5], all: ['All time', Infinity] }
+let mon, all = []
+m.innerHTML = `<div class="topbar"><div class="hrow g"><b class="crumb" id="crumb"></b><span id="top-badge"></span></div>
+  <select id="range" class="form-select" aria-label="Time range">${Object.entries(RANGES).map(([k, [l]]) => `<option value="${k}" ${k === '24h' ? 'selected' : ''}>${l}</option>`).join('')}</select></div><div id="content">Loading…</div>`
+function draw() {
+  const rows = all.filter(c => +new Date(c.checked_at) >= Date.now() - RANGES[range.value][1]), asc = [...rows].reverse()
+  const times = rows.map(c => c.response_time).filter(v => v != null), avg = times.length ? times.reduce((a, b) => a + b, 0) / times.length : null
+  const pct = rows.length ? Math.round(rows.filter(c => c.is_success).length / rows.length * 100) : null, up = all.length ? all[0].is_success : null
+  crumb.textContent = mon.name; document.getElementById('top-badge').innerHTML = up == null ? '' : badge(up, up ? 'OK' : 'DOWN')
+  content.innerHTML = `<section class="card hero"><div class="hrow"><a href="/monitors.html" class="back">${ic('back')} Back</a><a href="/monitors.html?edit=${mon.id}" class="btn btn-outline-secondary btn-sm">${ic('edit', 15)} Edit monitor</a></div><h1 class="title">${esc(mon.name)} Health Check</h1><div class="url">${esc(mon.url)}</div>
+    <div class="chips">${up == null ? '' : `<span class="chip">${up ? 'OK' : 'DOWN'}</span>`}<span class="chip blue">GET</span><span class="chip blue">Every ${fmtInt(mon.interval)}</span><span class="chip ${mon.is_active ? 'green' : ''}">${mon.is_active ? '✓ Active' : 'Paused'}</span></div>
+    <div class="stats">${stat('CHECKS', rows.length, 'list', 'blue')}${stat('SUCCESS %', pct == null ? '—' : pct + '%', 'ok', 'green', pct ?? 0)}${stat('ALERT %', pct == null ? '—' : 100 - pct + '%', 'alert', 'red', pct == null ? 0 : 100 - pct)}${stat('AVG TIME', avg == null ? '—' : Math.round(avg) + ' ms', 'clock', 'violet')}</div></section>
+  <h2 class="sec mt-3">Overview chart (status code &amp; duration)</h2>
+  <section class="card chart-card mt-3">${overview(asc, avg)}<div class="legend"><span><i class="ok"></i>Duration — OK</span><span><i class="bad"></i>Duration — FAIL</span><span><i class="blue"></i>Status</span></div></section>
+  <section class="card mt-3"><h2>Check history</h2>${rows.length ? `<div class="table-responsive"><table class="table"><thead><tr><th>Response</th><th>Status code</th><th>Time</th><th>Error message</th><th>Date</th></tr></thead><tbody>${rows.slice(0, 100).map(c => `<tr><td>${badge(c.is_success, c.is_success ? 'OK' : 'FAIL')}</td><td>${c.status_code ?? '—'}</td><td>${c.response_time == null ? '—' : Math.round(c.response_time) + ' ms'}</td><td class="text-secondary">${esc(c.error_message) || '—'}</td><td>${fmtDate(c.checked_at)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No checks in this period.</div>'}</section>`
+}
+async function load() {
+  try { [mon, all] = await Promise.all([api('/api/monitors/' + id + '/'), api('/api/monitors/' + id + '/history/')]); draw() }
+  catch (e) { content.innerHTML = errBox(e.message) }
+}
+range.onchange = draw; load(); setInterval(load, 30000)
+</script></body></html>

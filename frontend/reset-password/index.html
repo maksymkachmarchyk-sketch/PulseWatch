@@ -1,0 +1,10 @@
+<!doctype html><html lang="en" data-bs-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PulseWatch</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="/css/app.css" rel="stylesheet"></head><body>
+<div class="auth"><form id="f" class="card auth-card"><div class="brand"><span class="logo" id="lg"></span><div><b>PULSEWATCH</b><small>monitor everything</small></div></div><h1 class="h3">Choose a new password</h1>
+<div id="msg"></div><div id="fields"><div class="mb-3"><label class="form-label">New password</label><input name="new_password" type="password" class="form-control" required autocomplete="new-password"></div><button class="btn btn-success w-100">Change password</button></div>
+<p class="text-secondary mb-0"><a href="/login.html">Back to sign in</a></p></form></div><script src="/js/app.js"></script>
+<script>lg.innerHTML = ic('pulse')
+const q = new URLSearchParams(location.search), uid = q.get('uid'), token = q.get('token')
+api('/api/accounts/password-reset/confirm/?uid=' + encodeURIComponent(uid) + '&token=' + encodeURIComponent(token), {}, false).catch(x => { fields.remove(); msg.innerHTML = errBox(x.message) })
+f.onsubmit = async e => { e.preventDefault()
+  try { const r = await api('/api/accounts/password-reset/confirm/', { method: 'POST', body: { uid, token, new_password: f.elements.new_password.value } }, false); fields.remove(); msg.innerHTML = '<div class="alert-box ok">' + esc(r.message) + ' You can sign in now.</div>' } catch (x) { msg.innerHTML = errBox(x.message) } }</script></body></html>

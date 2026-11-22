@@ -1,0 +1,36 @@
+x-app: &app
+  build: .
+  image: pulsewatch-app
+  env_file: .env
+  environment:
+    REDIS_URL: redis://redis:6379
+  volumes:
+    - ./backend/db.sqlite3:/app/backend/db.sqlite3
+  depends_on:
+    - redis
+  restart: unless-stopped
+
+services:
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+
+  web:
+    <<: *app
+    command: sh -c "python manage.py migrate --noinput && gunicorn PulseWatch.wsgi:application --bind 0.0.0.0:8000 --workers 3"
+    ports:
+      - "8000:8000"
+
+  worker:
+    <<: *app
+    command: celery -A PulseWatch worker -l info
+    depends_on:
+      - redis
+      - web
+
+  beat:
+    <<: *app
+    command: celery -A PulseWatch beat -l info --schedule /tmp/celerybeat-schedule
+    depends_on:
+      - redis
+      - web

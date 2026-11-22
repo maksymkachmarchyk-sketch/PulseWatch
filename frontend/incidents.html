@@ -1,0 +1,17 @@
+<!doctype html><html lang="en" data-bs-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>PulseWatch</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet"><link href="/css/app.css" rel="stylesheet"></head><body><div id="app"></div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script><script src="/js/app.js"></script>
+<script>
+const m = shell('incidents')
+m.innerHTML = `<div class="topbar"><h1 class="title">Incidents</h1><select id="mon" class="form-select" aria-label="Filter by monitor"><option value="">All monitors</option></select></div><section class="card" id="list">Loading…</section>`
+let names = {}
+async function load() {
+  try {
+    const q = mon.value ? '?monitor_id=' + mon.value : ''
+    const d = await api('/api/incidents/' + q)
+    list.innerHTML = d.length ? `<div class="table-responsive"><table class="table"><thead><tr><th>Monitor</th><th>Reason</th><th>Started</th><th>Resolved</th><th>Duration</th><th>Status</th></tr></thead><tbody>${d.map(i => `<tr><td><a href="/monitor.html?id=${i.monitor}">${esc(names[i.monitor] || '#' + i.monitor)}</a></td><td>${esc(i.reason) || '—'}</td><td>${fmtDate(i.started_at)}</td><td>${i.resolved_at ? fmtDate(i.resolved_at) : '—'}</td><td>${fmtDur((i.resolved_at ? +new Date(i.resolved_at) : Date.now()) - +new Date(i.started_at))}</td><td>${badge(!!i.resolved_at, i.resolved_at ? 'Resolved' : 'Open')}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">No incidents. Everything is up.</div>'
+  } catch (e) { list.innerHTML = errBox(e.message) }
+}
+api('/api/monitors/').then(ms => { ms.forEach(x => { names[x.id] = x.name; mon.insertAdjacentHTML('beforeend', `<option value="${x.id}">${esc(x.name)}</option>`) }) }).catch(() => {}).finally(load)
+mon.onchange = load
+</script></body></html>
